@@ -1,0 +1,96 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: {{ name }}
+spec:
+  selector:
+    app: {{ name }}
+  ports:
+    - name: http
+      protocol: TCP
+      port: 80
+      targetPort: {{ port|default(80) }}
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: {{ name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ name }}
+  template:
+    metadata:
+      labels:
+        app: {{ name }}
+    spec:
+      containers:
+      - name: {{ name }}
+        image: {{ image }}
+        command: {{ command|default(['python', 'project/main.py']) }}
+        ports:
+        - containerPort: {{ port|default(80) }}
+        env:
+        {% for item in env -%}
+        {% for key, value in item.items() -%}
+          - name: {{ key }}
+          value: {{ value }}
+        {% endfor -%}
+        {% endfor -%}
+        volumeMounts:
+        {% for item in pvcmounts -%}
+        {% set outer_loop = loop -%}
+        {% for key, value in item.items() -%}
+        - name: pvc-{{outer_loop.index}}
+          mountPath: {{ value }}
+          {% if key|path -%}
+          subPath: {{ key|path }}
+        {% endif -%}
+      {% endfor -%}
+      {% endfor %}
+        resources:
+          requests:
+            cpu: {{ cpu|default(0.5) }}
+      volumes:
+      {% for item in pvcmounts -%}
+      {% set outer_loop = loop -%}
+      {% for key, value in item.items() -%}
+      - name: pvc-{{outer_loop.index}}
+        persistentVolumeClaim:
+          claimName: {{ key|base }}
+      {% endfor -%}
+      {% endfor %}
+---
+apiVersion: autoscaling/v1
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ name }}
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ name }}
+  minReplicas: 1
+  maxReplicas: 8
+  targetCPUUtilizationPercentage: 50
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: {{ name }}
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+    nginx.ingress.kubernetes.io/add-base-url: "True"
+
+spec:
+  rules:
+  - host: {{ host }}
+    http:
+      paths:
+      - backend:
+          serviceName: {{ name }}
+          servicePort: 80
+        {% if path is defined -%}
+        path: {{ path }}
+        {% endif -%}

@@ -1,0 +1,11 @@
+configMapGenerator:
+- name: {{ name }}
+  files:
+  - context.tar.gz
+secretGenerator:
+- name: {{ name }}
+  files:
+  - .dockerconfigjson
+  type: kubernetes.io/dockerconfigjson
+resources:
+- kaniko.yaml

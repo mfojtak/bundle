@@ -1,0 +1,116 @@
+#!/usr/bin/env python
+import argparse
+import os
+import sys
+import pathlib
+import yaml
+import re
+import base64
+from getpass import getpass
+import subprocess
+
+path_matcher = re.compile(r'\$\{([^}^{]+)\}')
+def path_constructor(loader, node):
+  ''' Extract the matched value, expand env variable, and replace the match '''
+  value = node.value
+  match = path_matcher.match(value)
+  env_var = match.group()[2:-1]
+  return os.environ.get(env_var) + value[match.end():]
+
+yaml.add_implicit_resolver('!path', path_matcher)
+yaml.add_constructor('!path', path_constructor)
+
+def base(value):
+    i = value.find('/')
+    if i==-1:
+        return value
+    return value[:i]
+
+def path(value):
+    i = value.find('/')
+    if i==-1:
+        return None
+    return value[i+1:]
+
+def b64encode(val):
+    message_bytes = val.encode('ascii')
+    base64_bytes = base64.b64encode(message_bytes)
+    base64_message = base64_bytes.decode('ascii')
+    return base64_message
+
+config = None
+
+def build(args):
+    global config
+    templates_path = os.environ.get("BUNLE_TEMPLATES")
+    if not templates_path:
+        templates_path = sys.prefix + "/templates"
+
+    with open(args.config) as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
+    template_path = templates_path + "/" + config["template"]
+    from distutils.dir_util import copy_tree
+    proj_dest = config["name"] + "/project"
+    copy_tree(args.source, proj_dest)
+
+    subprocess.run(["pipreqs", proj_dest, "--savepath", 
+                            config["name"] + "/requirements.txt"])
+    templates = pathlib.Path(template_path).glob('**/*')
+    templates = [x for x in templates if x.is_file()]
+    from jinja2 import Template, Environment, FileSystemLoader
+    file_loader = FileSystemLoader(template_path)
+    env = Environment(loader=file_loader)
+    env.filters['base'] = base
+    env.filters['path'] = path
+    env.filters['b64encode'] = b64encode
+    env.globals.update(input=input)
+    env.globals.update(getpass=getpass)
+
+    for template_name in templates:
+        print(template_name)
+        tmp = os.path.relpath(template_name, template_path)
+        template = env.get_template(tmp)
+        res = template.render(**config)
+        if res:
+            with open(config["name"] + "/" + tmp, "w") as text_file:
+                text_file.write(res)
+    
+    import tarfile
+    filename = config["name"] + '/context.tar.gz'
+    if os.path.exists(filename):
+        os.remove(filename)
+    with tarfile.open(filename, mode='w:gz') as archive:
+        archive.add(config["name"], recursive=True, arcname="")
+
+def apply(args):
+    build(args)
+    if os.path.exists(config["name"] + "/deploy.sh"):
+        subprocess.run(["./deploy.sh"], cwd=config["name"])
+    elif os.path.exists(config["name"] + "/kustomization.yaml"):
+        subprocess.run(["kubectl", "apply", "-k", "./"], cwd=config["name"])
+
+def delete(args):
+    with open(args.config) as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
+    if os.path.exists(config["name"] + "/delete.sh"):
+        subprocess.run(["./delete.sh"], cwd=config["name"])
+    elif os.path.exists(config["name"] + "/kustomization.yaml"):
+        subprocess.run(["kubectl", "delete", "-k", "./"], cwd=config["name"])
+
+parser = argparse.ArgumentParser(description='Bundles python project into dockerized kubernetes app')
+subparsers = parser.add_subparsers(help='sub-command help',dest='command')
+parser_build = subparsers.add_parser('build', help='builds a bundle')
+parser_build.add_argument("source", help="project input path", type=str)
+parser_build.add_argument("config", help="config path", type=str)
+parser_build.set_defaults(func=build)
+parser_apply = subparsers.add_parser('apply', help='builds and deploys bundle')
+parser_apply.add_argument("source", help="project input path", type=str)
+parser_apply.add_argument("config", help="config path", type=str)
+parser_apply.set_defaults(func=apply)
+parser_delete = subparsers.add_parser('delete', help='deletes bundle')
+parser_delete.add_argument("config", help="config path", type=str)
+parser_delete.set_defaults(func=delete)
+
+
+args = parser.parse_args()
+args.func(args)

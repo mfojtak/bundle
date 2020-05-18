@@ -1,0 +1,45 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ name }}-build
+spec:
+  template:
+    spec:
+      containers:
+      - name: {{ name }}-build
+        image: gcr.io/kaniko-project/executor:latest
+        args: ["--context=tar:///context/context.tar.gz",
+                "--destination={{ image }}",
+                {% for item in env -%}
+                {% for key, value in item.items() -%}
+                "--build-arg={{ key }}={{ value }}",
+                {% endfor -%}
+                {% endfor -%}
+                #"--insecure", 
+                #"--skip-tls-verify",
+                #"--insecure-registry=registry:5000",
+                #"--skip-tls-verify-registry=registry:5000"
+                ]
+        env:
+        {% for item in env -%}
+        {% for key, value in item.items() -%}
+          - name: {{ key }}
+          value: {{ value }}
+        {% endfor -%}
+        {% endfor -%}
+        volumeMounts:
+        - name: context-volume
+          mountPath: /context
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
+      restartPolicy: Never
+      volumes:
+      - name: context-volume
+        configMap:
+          name: {{ name }}
+      - name: kaniko-secret
+        secret:
+          secretName: {{ name }}
+          items:
+            - key: .dockerconfigjson
+              path: config.json
