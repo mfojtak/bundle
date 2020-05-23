@@ -10,10 +10,8 @@ spec:
         image: gcr.io/kaniko-project/executor:latest
         args: ["--context=tar:///context/context.tar.gz",
                 "--destination={{ image }}",
-                {% for item in env -%}
-                {% for key, value in item.items() -%}
+                {% for key, value in env.items() -%}
                 "--build-arg={{ key }}={{ value }}",
-                {% endfor -%}
                 {% endfor -%}
                 #"--insecure", 
                 #"--skip-tls-verify",
@@ -21,11 +19,9 @@ spec:
                 #"--skip-tls-verify-registry=registry:5000"
                 ]
         env:
-        {% for item in env -%}
-        {% for key, value in item.items() -%}
+        {% for key, value in env.items() -%}
           - name: {{ key }}
           value: {{ value }}
-        {% endfor -%}
         {% endfor -%}
         volumeMounts:
         - name: context-volume

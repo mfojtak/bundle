@@ -32,11 +32,9 @@ spec:
         ports:
         - containerPort: {{ port|default(80) }}
         env:
-        {% for item in env -%}
-        {% for key, value in item.items() -%}
+        {% for key, value in env.items() -%}
           - name: {{ key }}
           value: {{ value }}
-        {% endfor -%}
         {% endfor -%}
         volumeMounts:
         {% for item in pvcmounts -%}
@@ -80,8 +78,8 @@ kind: Ingress
 metadata:
   name: {{ name }}
   annotations:
-    nginx.ingress.kubernetes.io/rewrite-target: /
-    nginx.ingress.kubernetes.io/add-base-url: "True"
+    #nginx.ingress.kubernetes.io/rewrite-target: /
+    #nginx.ingress.kubernetes.io/add-base-url: "True"
 
 spec:
   rules:

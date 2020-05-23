@@ -22,7 +22,7 @@ setup(
     author_email='mfojtak@seznam.cz',
     description='bundle',
     install_requires=["Jinja2"],
-    scripts=['bundle'],
+    scripts=['bundlectl'],
     classifiers=[
         "Programming Language :: Python :: 2.7",
         "Programming Language :: Python :: 3.6",

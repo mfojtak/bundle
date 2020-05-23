@@ -8,6 +8,7 @@ import re
 import base64
 from getpass import getpass
 import subprocess
+import bundle
 
 path_matcher = re.compile(r'\$\{([^}^{]+)\}')
 def path_constructor(loader, node):
@@ -51,10 +52,9 @@ def build(args):
     template_path = templates_path + "/" + config["template"]
     from distutils.dir_util import copy_tree
     proj_dest = config["name"] + "/project"
+    config["proj_dest"] = proj_dest
     copy_tree(args.source, proj_dest)
 
-    subprocess.run(["pipreqs", proj_dest, "--savepath", 
-                            config["name"] + "/requirements.txt"])
     templates = pathlib.Path(template_path).glob('**/*')
     templates = [x for x in templates if x.is_file()]
     from jinja2 import Template, Environment, FileSystemLoader
@@ -65,6 +65,17 @@ def build(args):
     env.filters['b64encode'] = b64encode
     env.globals.update(input=input)
     env.globals.update(getpass=getpass)
+    env.globals.update(introspect=bundle.introspect)
+    env.globals.update(get_module=bundle.get_module)
+
+    for template_name in templates:
+        tmp = os.path.relpath(template_name, template_path)
+        if tmp == "config.yaml":
+            with open(template_name) as file:
+                base_config = yaml.load(file, Loader=yaml.FullLoader)
+            config = bundle.merge(base_config, config)
+            with open(config["name"] + "/" + tmp, "w") as text_file:
+                yaml.dump(config, text_file)
 
     for template_name in templates:
         print(template_name)
@@ -74,6 +85,9 @@ def build(args):
         if res:
             with open(config["name"] + "/" + tmp, "w") as text_file:
                 text_file.write(res)
+    
+    subprocess.run(["pipreqs", proj_dest, "--savepath", 
+                            config["name"] + "/requirements.txt"])
     
     import tarfile
     filename = config["name"] + '/context.tar.gz'
