@@ -1,3 +1,4 @@
+{% if not exists(name + '/.dockerconfigjson') -%}
 {% set username = input("username: ") -%}
 {% set password = getpass("password: ") -%}
 {% set email = input("email: ") -%}
@@ -11,3 +12,4 @@
     }
   }
 }
+{% endif -%}

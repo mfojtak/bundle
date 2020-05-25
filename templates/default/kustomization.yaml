@@ -1,3 +1,5 @@
+generatorOptions:
+  disableNameSuffixHash: true
 configMapGenerator:
 - name: {{ name }}
   files:

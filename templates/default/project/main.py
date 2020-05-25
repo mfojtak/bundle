@@ -16,8 +16,8 @@ class {{value}}_Item(BaseModel):
     {{param.name}}{% if param.type_name is not none -%}: {{param.type_name}}{% endif -%}{% if param.default is not none -%} = {{param.default}}{% endif %}
     {% endfor %}
 {% endif -%}
-@api.{{"post" if sig.params else "get"}}('/{{value}}')
-def {{value}}_wrapper({% if sig.params -%}item: {{value}}_Item{% endif -%}):
+@api.{{"post" if sig.params else "get"}}('/{{value}}'{% if sig.return_type_name is not none %}, response_model={{sig.return_type_name}}{% endif -%})
+def {{value}}_wrapper({% if sig.params -%}item: {{value}}_Item{% endif -%}){% if sig.return_type_name is not none %} -> {{sig.return_type_name}}{% endif -%}:
     res = {{value}}({% for param in sig.params -%}item.{{param.name}},{% endfor %})
     return res
 {% endfor %}

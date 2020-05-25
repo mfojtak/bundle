@@ -67,6 +67,7 @@ def build(args):
     env.globals.update(getpass=getpass)
     env.globals.update(introspect=bundle.introspect)
     env.globals.update(get_module=bundle.get_module)
+    env.globals.update(exists=os.path.exists)
 
     for template_name in templates:
         tmp = os.path.relpath(template_name, template_path)

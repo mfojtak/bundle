@@ -1,4 +1,5 @@
 from inspect import signature, Parameter
+import inspect
 from typing import List
 import importlib.machinery
 import importlib.util
@@ -11,6 +12,8 @@ class Param:
 
 class Signature:
     params: List[Param] = list()
+    return_annotation = None
+    return_type_name = None
 
 def get_module(name, path):
     spec = importlib.machinery.PathFinder().find_spec(name, [path])
@@ -32,5 +35,8 @@ def introspect(f,mod):
             res_param.type_name = param.annotation.__name__
 
         res.params.append(res_param)
+    if sig.return_annotation is not inspect.Signature.empty:
+        res.return_annotation = sig.return_annotation
+        res.return_type_name = sig.return_annotation.__name__
     return res
         
