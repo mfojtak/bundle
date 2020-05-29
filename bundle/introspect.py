@@ -14,6 +14,7 @@ class Signature:
     params: List[Param] = list()
     return_annotation = None
     return_type_name = None
+    doc = None
 
 def get_module(name, path):
     spec = importlib.machinery.PathFinder().find_spec(name, [path])
@@ -38,5 +39,6 @@ def introspect(f,mod):
     if sig.return_annotation is not inspect.Signature.empty:
         res.return_annotation = sig.return_annotation
         res.return_type_name = sig.return_annotation.__name__
+    res.doc = f.__doc__
     return res
         

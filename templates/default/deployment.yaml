@@ -25,6 +25,8 @@ spec:
       labels:
         app: {{ name }}
     spec:
+      imagePullSecrets:
+        - name: {{ name }}
       containers:
       - name: {{ name }}
         image: {{ image }}
@@ -33,32 +35,26 @@ spec:
         - containerPort: {{ port|default(80) }}
         env:
         {% for key, value in env.items() -%}
-          - name: {{ key }}
+        - name: {{ key }}
           value: {{ value }}
         {% endfor -%}
         volumeMounts:
-        {% for item in pvcmounts -%}
-        {% set outer_loop = loop -%}
-        {% for key, value in item.items() -%}
-        - name: pvc-{{outer_loop.index}}
-          mountPath: {{ value }}
+        {% for key, value in pvcmounts.items() -%}
+        - name: pvc-{{loop.index}}
           {% if key|path -%}
           subPath: {{ key|path }}
-        {% endif -%}
-      {% endfor -%}
-      {% endfor %}
+          {% endif -%}
+          mountPath: {{ value }}
+        {% endfor -%}
         resources:
           requests:
             cpu: {{ cpu|default(0.5) }}
       volumes:
-      {% for item in pvcmounts -%}
-      {% set outer_loop = loop -%}
-      {% for key, value in item.items() -%}
-      - name: pvc-{{outer_loop.index}}
+      {% for key, value in pvcmounts.items() -%}
+      - name: pvc-{{loop.index}}
         persistentVolumeClaim:
           claimName: {{ key|base }}
-      {% endfor -%}
-      {% endfor %}
+{% endfor -%}
 ---
 apiVersion: autoscaling/v1
 kind: HorizontalPodAutoscaler
@@ -69,8 +65,8 @@ spec:
     apiVersion: apps/v1
     kind: Deployment
     name: {{ name }}
-  minReplicas: 1
-  maxReplicas: 8
+  minReplicas: {{ minReplicas | default(1) }}
+  maxReplicas: {{ maxReplicas | default(8) }}
   targetCPUUtilizationPercentage: 50
 ---
 apiVersion: extensions/v1beta1

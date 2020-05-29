@@ -18,6 +18,9 @@ class {{value}}_Item(BaseModel):
 {% endif -%}
 @api.{{"post" if sig.params else "get"}}('/{{value}}'{% if sig.return_type_name is not none %}, response_model={{sig.return_type_name}}{% endif -%})
 def {{value}}_wrapper({% if sig.params -%}item: {{value}}_Item{% endif -%}){% if sig.return_type_name is not none %} -> {{sig.return_type_name}}{% endif -%}:
+    {% if sig.doc is not none -%}
+    """{{ sig.doc }}"""
+    {% endif -%}
     res = {{value}}({% for param in sig.params -%}item.{{param.name}},{% endfor %})
     return res
 {% endfor %}

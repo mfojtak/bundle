@@ -39,6 +39,12 @@ def b64encode(val):
     base64_message = base64_bytes.decode('ascii')
     return base64_message
 
+def registry(image):
+    registry = image.split("/")[0]
+    if registry in ["docker.io", "index.docker.io"]:
+        return "https://index.docker.io/v1/"
+    return registry
+
 config = None
 
 def build(args):
@@ -68,6 +74,7 @@ def build(args):
     env.globals.update(introspect=bundle.introspect)
     env.globals.update(get_module=bundle.get_module)
     env.globals.update(exists=os.path.exists)
+    env.globals.update(registry=registry)
 
     for template_name in templates:
         tmp = os.path.relpath(template_name, template_path)

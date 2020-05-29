@@ -1,13 +1,10 @@
 {% if not exists(name + '/.dockerconfigjson') -%}
-{% set username = input("username: ") -%}
-{% set password = getpass("password: ") -%}
-{% set email = input("email: ") -%}
+{% set reg = registry(image) -%}
+{% set username = input("username for " + reg + ":") -%}
+{% set password = getpass("password for " + reg + ":") -%}
 {
   "auths": {
-    "https://index.docker.io/v1/": {
-      "username": "{{ username }}",
-      "password": "{{ password }}",
-      "email": "{{ email }}",
+    "{{reg}}": {
       "auth": "{{ (username + ':' + password) | b64encode}}"
     }
   }
