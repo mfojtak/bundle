@@ -49,7 +49,7 @@ config = None
 
 def build(args):
     global config
-    templates_path = os.environ.get("BUNLE_TEMPLATES")
+    templates_path = os.environ.get("BUNDLE_TEMPLATES")
     if not templates_path:
         templates_path = sys.prefix + "/templates"
 
