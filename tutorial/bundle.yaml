@@ -1,0 +1,14 @@
+name: tutorial-mnist #bundle name
+template: default #template to be applied
+image: docker.io/mfojtak/test:latest #base image
+host: computec4.novartis.net #host name used in ingress
+path: /mnist #ingress subpath
+env: #environment variables 
+  https_proxy: ${https_proxy} #https proxy is resolved automatically
+  http_proxy: ${http_proxy}
+pvcmounts: #persistent volume claims to be mounted
+  computec-workspace-claim: /data #pvc will be mapped to local folder /data
+maxReplicas: 8 #autoscale to max 8 replicas
+functions: #functions to expose
+- train: predict #function predict from module train.py is exposed
+- train: predict_image

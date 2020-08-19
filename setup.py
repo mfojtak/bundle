@@ -21,7 +21,7 @@ setup(
     author='mfojtak',
     author_email='mfojtak@seznam.cz',
     description='bundle',
-    install_requires=["Jinja2"],
+    install_requires=["Jinja2", "pipreqs"],
     scripts=['bundlectl'],
     classifiers=[
         "Programming Language :: Python :: 2.7",

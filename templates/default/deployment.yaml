@@ -49,6 +49,8 @@ spec:
         resources:
           requests:
             cpu: {{ cpu|default(0.5) }}
+          limits:
+            cpu: {{ cpu|default(0.5) }}
       volumes:
       {% for key, value in pvcmounts.items() -%}
       - name: pvc-{{loop.index}}
@@ -76,6 +78,7 @@ metadata:
   annotations:
     #nginx.ingress.kubernetes.io/rewrite-target: /
     #nginx.ingress.kubernetes.io/add-base-url: "True"
+    nginx.ingress.kubernetes.io/proxy-body-size: "0"
 
 spec:
   rules:

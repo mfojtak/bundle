@@ -33,6 +33,9 @@ def path(value):
         return None
     return value[i+1:]
 
+def abspath(value):
+    return os.path.abspath(value)
+
 def b64encode(val):
     message_bytes = val.encode('ascii')
     base64_bytes = base64.b64encode(message_bytes)
@@ -45,13 +48,13 @@ def registry(image):
         return "https://index.docker.io/v1/"
     return registry
 
-config = None
-
 def build(args):
     global config
     templates_path = os.environ.get("BUNDLE_TEMPLATES")
     if not templates_path:
         templates_path = sys.prefix + "/templates"
+        if not os.path.exists(templates_path):
+            templates_path = "templates"
 
     with open(args.config) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
@@ -68,6 +71,7 @@ def build(args):
     env = Environment(loader=file_loader)
     env.filters['base'] = base
     env.filters['path'] = path
+    env.filters['abspath'] = abspath
     env.filters['b64encode'] = b64encode
     env.globals.update(input=input)
     env.globals.update(getpass=getpass)
@@ -112,6 +116,8 @@ def apply(args):
         subprocess.run(["kubectl", "apply", "-k", "./"], cwd=config["name"])
 
 def delete(args):
+    if os.path.isdir(args.config):
+        args.config = args.config + "/bundle.yaml"
     with open(args.config) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
     if os.path.exists(config["name"] + "/delete.sh"):
@@ -123,11 +129,11 @@ parser = argparse.ArgumentParser(description='Bundles python project into docker
 subparsers = parser.add_subparsers(help='sub-command help',dest='command')
 parser_build = subparsers.add_parser('build', help='builds a bundle')
 parser_build.add_argument("source", help="project input path", type=str)
-parser_build.add_argument("config", help="config path", type=str)
+parser_build.add_argument("--config", help="config path", type=str)
 parser_build.set_defaults(func=build)
 parser_apply = subparsers.add_parser('apply', help='builds and deploys bundle')
 parser_apply.add_argument("source", help="project input path", type=str)
-parser_apply.add_argument("config", help="config path", type=str)
+parser_apply.add_argument("--config", help="config path", type=str)
 parser_apply.set_defaults(func=apply)
 parser_delete = subparsers.add_parser('delete', help='deletes bundle')
 parser_delete.add_argument("config", help="config path", type=str)
@@ -135,4 +141,5 @@ parser_delete.set_defaults(func=delete)
 
 
 args = parser.parse_args()
+args.config = args.config if args.config else args.source + "/bundle.yaml"
 args.func(args)

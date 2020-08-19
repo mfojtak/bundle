@@ -8,7 +8,9 @@ spec:
       containers:
       - name: {{ name }}-build
         image: gcr.io/kaniko-project/executor:latest
-        args: ["--context=tar:///context/context.tar.gz",
+        args: [
+                #"--context=tar:///context/context.tar.gz",
+                "--context={{ name|abspath }}",
                 "--destination={{ image }}",
                 {% for key, value in env.items() -%}
                 "--build-arg={{ key }}={{ value }}",
@@ -17,7 +19,7 @@ spec:
                 #"--skip-tls-verify",
                 #"--insecure-registry=registry:5000",
                 #"--skip-tls-verify-registry=registry:5000"
-                ]
+              ]
         env:
         {% for key, value in env.items() -%}
           - name: {{ key }}
@@ -28,6 +30,18 @@ spec:
           mountPath: /context
         - name: kaniko-secret
           mountPath: /kaniko/.docker
+        {% for key, value in pvcmounts.items() -%}
+        - name: pvc-{{loop.index}}
+          {% if key|path -%}
+          subPath: {{ key|path }}
+          {% endif -%}
+          mountPath: {{ value }}
+        resources:
+          requests:
+            cpu: 1
+          limits:
+            cpu: 1
+      {% endfor -%}
       restartPolicy: Never
       volumes:
       - name: context-volume
@@ -39,3 +53,8 @@ spec:
           items:
             - key: .dockerconfigjson
               path: config.json
+      {% for key, value in pvcmounts.items() -%}
+      - name: pvc-{{loop.index}}
+        persistentVolumeClaim:
+          claimName: {{ key|base }}
+      {% endfor -%}
