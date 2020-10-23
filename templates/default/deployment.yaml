@@ -30,6 +30,7 @@ spec:
       containers:
       - name: {{ name }}
         image: {{ image }}
+        workingDir: {{ workingDir|default('/') }}
         command: {{ command|default(['python', 'project/main.py']) }}
         ports:
         - containerPort: {{ port|default(80) }}
