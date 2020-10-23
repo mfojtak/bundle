@@ -52,6 +52,7 @@ def build(args):
     global config
     templates_path = os.environ.get("BUNDLE_TEMPLATES")
     if not templates_path:
+        print("BUNDLE_TEMPLATES env variable not set. Looking for templates in ./templates folder")
         templates_path = sys.prefix + "/templates"
         if not os.path.exists(templates_path):
             templates_path = "templates"
@@ -59,10 +60,15 @@ def build(args):
     with open(args.config) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
     template_path = templates_path + "/" + config["template"]
-    from distutils.dir_util import copy_tree
+    from shutil import copytree, ignore_patterns
     proj_dest = config["name"] + "/project"
     config["proj_dest"] = proj_dest
-    copy_tree(args.source, proj_dest)
+    print("Copying project tree")
+    if "ignore" in config:
+        copytree(args.source, proj_dest, ignore=ignore_patterns(*config["ignore"], proj_dest), 
+            dirs_exist_ok=True)
+    else:
+        copytree(args.source, proj_dest, dirs_exist_ok=True)
 
     templates = pathlib.Path(template_path).glob('**/*')
     templates = [x for x in templates if x.is_file()]
@@ -90,7 +96,7 @@ def build(args):
                 yaml.dump(config, text_file)
 
     for template_name in templates:
-        print(template_name)
+        print("Processing template " + str(template_name))
         tmp = os.path.relpath(template_name, template_path)
         template = env.get_template(tmp)
         res = template.render(**config)
