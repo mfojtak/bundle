@@ -10,6 +10,8 @@ from getpass import getpass
 import subprocess
 import bundle
 
+package_path = pathlib.Path(bundle.__file__).parent.parent
+
 path_matcher = re.compile(r'\$\{([^}^{]+)\}')
 def path_constructor(loader, node):
   ''' Extract the matched value, expand env variable, and replace the match '''
@@ -51,15 +53,17 @@ def registry(image):
 def build(args):
     global config
     templates_path = os.environ.get("BUNDLE_TEMPLATES")
-    if not templates_path:
-        print("BUNDLE_TEMPLATES env variable not set. Looking for templates in ./templates folder")
-        templates_path = sys.prefix + "/templates"
-        if not os.path.exists(templates_path):
+    if templates_path:
+        templates_path = pathlib.Path(templates_path)
+    else:
+        print("BUNDLE_TEMPLATES env variable not set. Looking for templates in {}".format(str(package_path)))
+        templates_path = package_path / "templates"
+        if not templates_path.exists:
             templates_path = "templates"
 
     with open(args.config) as file:
         config = yaml.load(file, Loader=yaml.FullLoader)
-    template_path = templates_path + "/" + config["template"]
+    template_path = templates_path / config["template"]
     from shutil import copytree, ignore_patterns
     proj_dest = config["name"] + "/project"
     config["proj_dest"] = proj_dest
@@ -70,10 +74,10 @@ def build(args):
     else:
         copytree(args.source, proj_dest, dirs_exist_ok=True)
 
-    templates = pathlib.Path(template_path).glob('**/*')
+    templates = template_path.glob('**/*')
     templates = [x for x in templates if x.is_file()]
     from jinja2 import Template, Environment, FileSystemLoader
-    file_loader = FileSystemLoader(template_path)
+    file_loader = FileSystemLoader(str(template_path))
     env = Environment(loader=file_loader)
     env.filters['base'] = base
     env.filters['path'] = path
@@ -86,26 +90,30 @@ def build(args):
     env.globals.update(exists=os.path.exists)
     env.globals.update(registry=registry)
 
-    for template_name in templates:
-        tmp = os.path.relpath(template_name, template_path)
-        if tmp == "config.yaml":
-            with open(template_name) as file:
+    for tf in templates:
+        tmp = tf.relative_to(template_path)
+        if str(tmp) == "config.yaml":
+            with open(str(tf)) as file:
                 base_config = yaml.load(file, Loader=yaml.FullLoader)
             config = bundle.merge(base_config, config)
             with open(config["name"] + "/" + tmp, "w") as text_file:
                 yaml.dump(config, text_file)
 
-    for template_name in templates:
-        print("Processing template " + str(template_name))
-        tmp = os.path.relpath(template_name, template_path)
-        template = env.get_template(tmp)
+    local_req = pathlib.Path(proj_dest) / "requirements.txt"
+    if local_req.exists:
+        config["extra_req_files"] = ["project/requirements.txt"]
+
+    for tf in templates:
+        print("Processing template file " + str(tf))
+        tmp = tf.relative_to(template_path)
+        template = env.get_template(str(tmp))
         res = template.render(**config)
         if res:
-            with open(config["name"] + "/" + tmp, "w") as text_file:
+            with open(config["name"] / tmp, "w") as text_file:
                 text_file.write(res)
     
-    subprocess.run(["pipreqs", proj_dest, "--savepath", 
-                            config["name"] + "/requirements.txt"])
+    global_req = pathlib.Path(config["name"]) / "requirements.txt"
+    subprocess.run(["pipreqs", proj_dest, "--savepath", str(global_req)])
     
     import tarfile
     filename = config["name"] + '/context.tar.gz'
