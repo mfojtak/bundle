@@ -121,7 +121,6 @@ def build(args):
         os.remove(filename)
     with tarfile.open(filename, mode='w:gz') as archive:
         print("Archiving")
-        print(config["name"])
         archive.add(config["name"], recursive=True, arcname="")
     print("Build finished")
 
