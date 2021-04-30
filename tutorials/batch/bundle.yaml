@@ -1,0 +1,9 @@
+name: tutorial-batch #bundle name
+template: job #template to be applied
+image: docker.io/mfojtak/testjob:latest #base image
+jobs: 2
+env: #environment variables 
+  https_proxy: ${https_proxy} #https proxy is resolved automatically
+  http_proxy: ${http_proxy}
+pvcmounts: #persistent volume claims to be mounted
+  computec-workspace-claim: /data #pvc will be mapped to local folder /data

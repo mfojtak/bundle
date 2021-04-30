@@ -1,0 +1,9 @@
+name: tutorial-ray #bundle name
+template: ray #template to be applied
+env: #environment variables 
+  https_proxy: ${https_proxy} #https proxy is resolved automatically
+  http_proxy: ${http_proxy}
+pvcmounts: #persistent volume claims to be mounted
+  computec-workspace-claim: /data #pvc will be mapped to local folder /data
+workers: 2 #number of workers
+cpu: 0.5 #worker cpu request

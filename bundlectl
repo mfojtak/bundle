@@ -100,7 +100,8 @@ def build(args):
                 yaml.dump(config, text_file)
 
     local_req = pathlib.Path(proj_dest) / "requirements.txt"
-    if local_req.exists:
+    if local_req.exists():
+        print(local_req)
         config["extra_req_files"] = ["project/requirements.txt"]
 
     for tf in templates:
@@ -117,11 +118,17 @@ def build(args):
     
     import tarfile
     filename = config["name"] + '/context.tar.gz'
+    EXCLUDE_FILES = ["context.tar.gz", ".cache"]
+    def filter_function(tarinfo):
+        if tarinfo.name in EXCLUDE_FILES:
+            return None
+        else:
+            return tarinfo
     if os.path.exists(filename):
         os.remove(filename)
     with tarfile.open(filename, mode='w:gz') as archive:
         print("Archiving")
-        archive.add(config["name"], recursive=True, arcname="")
+        archive.add(config["name"], recursive=True, arcname="", filter=filter_function)
     print("Build finished")
 
 def apply(args):

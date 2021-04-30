@@ -1,0 +1,46 @@
+{% for n in range(jobs) %}
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ name }}-{{ n }}
+spec:
+  template:
+    spec:
+      imagePullSecrets:
+      - name: {{ name }}
+      containers:
+      - name: {{ name }}-{{ n }}
+        image: {{ image }}
+        workingDir: {{ workingDir|default('/') }}
+        command: {{ command|default(['python', 'project/main.py']) }}
+        env:
+        {% for key, value in env.items() -%}
+        - name: {{ key }}
+          value: {{ value }}
+        {% endfor -%}
+        - name: JOBS
+          value: "{{ jobs }}"
+        - name: JOB
+          value: "{{ n }}"
+        volumeMounts:
+        {% for key, value in pvcmounts.items() -%}
+        - name: pvc-{{loop.index}}
+          {% if key|path -%}
+          subPath: {{ key|path }}
+          {% endif -%}
+          mountPath: {{ value }}
+        {% endfor -%}
+        resources:
+          requests:
+            cpu: {{ cpu|default(0.5) }}
+          limits:
+            cpu: {{ cpu|default(0.5) }}
+      restartPolicy: Never
+      volumes:
+      {% for key, value in pvcmounts.items() -%}
+      - name: pvc-{{loop.index}}
+        persistentVolumeClaim:
+          claimName: {{ key|base }}
+{% endfor -%}
+---
+{% endfor %}

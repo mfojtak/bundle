@@ -1,0 +1,53 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: nlp-booth-bundle-build
+spec:
+  template:
+    spec:
+      containers:
+      - name: nlp-booth-bundle-build
+        image: gcr.io/kaniko-project/executor:latest
+        args: [
+                #"--context=tar:///context/context.tar.gz",
+                "--context=/data/bundle/nlp-booth-bundle",
+                "--destination=docker.io/mfojtak/nlpbooth:latest",
+                "--build-arg=https_proxy=http://useh-proxy.na.novartis.net:2010",
+                "--build-arg=http_proxy=http://useh-proxy.na.novartis.net:2011",
+                #"--insecure", 
+                #"--skip-tls-verify",
+                #"--insecure-registry=registry:5000",
+                #"--skip-tls-verify-registry=registry:5000"
+              ]
+        env:
+        - name: https_proxy
+          value: http://useh-proxy.na.novartis.net:2010
+        - name: http_proxy
+          value: http://useh-proxy.na.novartis.net:2011
+        volumeMounts:
+        - name: context-volume
+          mountPath: /context
+        - name: kaniko-secret
+          mountPath: /kaniko/.docker
+        - name: pvc-1
+          mountPath: /data
+        resources:
+          requests:
+            cpu: 1
+          limits:
+            cpu: 1
+      restartPolicy: Never
+      volumes:
+      - name: context-volume
+        configMap:
+          name: nlp-booth-bundle
+      - name: kaniko-secret
+        secret:
+          secretName: nlp-booth-bundle
+          items:
+            - key: .dockerconfigjson
+              path: config.json
+      - name: pvc-1
+        persistentVolumeClaim:
+          claimName: computec-workspace-claim
+      

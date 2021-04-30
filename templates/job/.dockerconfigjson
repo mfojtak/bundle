@@ -1,0 +1,12 @@
+{% if not exists(name + '/.dockerconfigjson') -%}
+{% set reg = registry(image) -%}
+{% set username = input("username for " + reg + ":") -%}
+{% set password = getpass("password for " + reg + ":") -%}
+{
+  "auths": {
+    "{{reg}}": {
+      "auth": "{{ (username + ':' + password) | b64encode}}"
+    }
+  }
+}
+{% endif -%}

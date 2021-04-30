@@ -1,0 +1,13 @@
+generatorOptions:
+  disableNameSuffixHash: true
+configMapGenerator:
+- name: nlp-booth-bundle
+  files:
+  - context.tar.gz
+secretGenerator:
+- name: nlp-booth-bundle
+  files:
+  - .dockerconfigjson
+  type: kubernetes.io/dockerconfigjson
+resources:
+- kaniko.yaml
