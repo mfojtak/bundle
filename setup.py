@@ -9,7 +9,7 @@ def gen_data_files(dirs):
     for datadir in dirs:
         for p, _, files in os.walk(datadir):
             results.extend((p, [os.path.join(p, f)]) for f in files)
-    print(results)
+    print("Template files", results)
     return results
 
 setup(
