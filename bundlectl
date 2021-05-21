@@ -59,10 +59,10 @@ def build(args):
     else:
         print("BUNDLE_TEMPLATES env variable not set. Looking for templates in {}".format(str(package_path)))
         templates_path = package_path / "templates"
-        if not templates_path.exists:
+        if not templates_path.exists():
             print("Looking for templates in {}".format(str(package_path.parent)))
             templates_path = package_path.parent / "templates"
-            if not templates_path.exists:
+            if not templates_path.exists():
                 templates_path = "templates"
 
     with open(args.config) as file:
