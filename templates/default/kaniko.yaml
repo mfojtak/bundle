@@ -7,7 +7,7 @@ spec:
     spec:
       containers:
       - name: {{ name }}-build
-        image: gcr.io/kaniko-project/executor:v1.3.0
+        image: gcr.io/kaniko-project/executor:latest
         args: [
                 #"--context=tar:///context/context.tar.gz",
                 "--context={{ name|abspath }}",
@@ -17,6 +17,8 @@ spec:
                 {% endfor -%}
                 #"--insecure", 
                 "--skip-tls-verify",
+                #"--use-new-run",
+                #--snapshotMode=redo,
                 #"--verbosity=debug",
                 #"--insecure-registry=registry:5000",
                 #"--skip-tls-verify-registry=registry:5000"

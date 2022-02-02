@@ -137,6 +137,13 @@ def build(args):
 
 def apply(args):
     build(args)
+    deploy(args)
+
+def deploy(args):
+    if os.path.isdir(args.config):
+        args.config = args.config + "/bundle.yaml"
+    with open(args.config) as file:
+        config = yaml.load(file, Loader=yaml.FullLoader)
     if os.path.exists(config["name"] + "/deploy.sh"):
         subprocess.run(["./deploy.sh"], cwd=config["name"])
     elif os.path.exists(config["name"] + "/kustomization.yaml"):
@@ -162,6 +169,9 @@ parser_apply = subparsers.add_parser('apply', help='builds and deploys bundle')
 parser_apply.add_argument("source", help="project input path", type=str)
 parser_apply.add_argument("--config", help="config path", type=str)
 parser_apply.set_defaults(func=apply)
+parser_deploy = subparsers.add_parser('deploy', help='deploys bundle')
+parser_deploy.add_argument("config", help="config path", type=str)
+parser_deploy.set_defaults(func=deploy)
 parser_delete = subparsers.add_parser('delete', help='deletes bundle')
 parser_delete.add_argument("config", help="config path", type=str)
 parser_delete.set_defaults(func=delete)
